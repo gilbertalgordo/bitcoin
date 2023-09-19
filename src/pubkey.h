@@ -299,9 +299,11 @@ private:
     std::array<std::byte, SIZE> m_pubkey;
 
 public:
+    /** Default constructor creates all-zero pubkey (which is valid). */
+    EllSwiftPubKey() noexcept = default;
+
     /** Construct a new ellswift public key from a given serialization. */
-    EllSwiftPubKey(const std::array<std::byte, SIZE>& ellswift) :
-        m_pubkey(ellswift) {}
+    EllSwiftPubKey(Span<const std::byte> ellswift) noexcept;
 
     /** Decode to normal compressed CPubKey (for debugging purposes). */
     CPubKey Decode() const;

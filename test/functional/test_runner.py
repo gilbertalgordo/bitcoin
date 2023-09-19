@@ -76,6 +76,7 @@ TEST_FRAMEWORK_MODULES = [
     "blocktools",
     "ellswift",
     "key",
+    "messages",
     "muhash",
     "ripemd160",
     "script",
@@ -122,6 +123,7 @@ BASE_SCRIPTS = [
     'feature_abortnode.py',
     'wallet_address_types.py --legacy-wallet',
     'wallet_address_types.py --descriptors',
+    'p2p_orphan_handling.py',
     'wallet_basic.py --legacy-wallet',
     'wallet_basic.py --descriptors',
     'feature_maxtipage.py',
@@ -160,6 +162,7 @@ BASE_SCRIPTS = [
     'wallet_abandonconflict.py --legacy-wallet',
     'wallet_abandonconflict.py --descriptors',
     'feature_reindex.py',
+    'feature_reindex_readonly.py',
     'wallet_labels.py --legacy-wallet',
     'wallet_labels.py --descriptors',
     'p2p_compactblocks.py',
@@ -266,6 +269,7 @@ BASE_SCRIPTS = [
     'p2p_leak_tx.py',
     'p2p_eviction.py',
     'p2p_ibd_stalling.py',
+    'p2p_net_deadlock.py',
     'wallet_signmessagewithaddress.py',
     'rpc_signmessagewithprivkey.py',
     'rpc_generate.py',
@@ -312,6 +316,7 @@ BASE_SCRIPTS = [
     'wallet_sendall.py --descriptors',
     'wallet_create_tx.py --descriptors',
     'wallet_inactive_hdchains.py --legacy-wallet',
+    'wallet_spend_unconfirmed.py',
     'p2p_fingerprint.py',
     'feature_uacomment.py',
     'feature_init.py',
@@ -783,8 +788,8 @@ def check_script_prefixes():
 def check_script_list(*, src_dir, fail_on_warn):
     """Check scripts directory.
 
-    Check that there are no scripts in the functional tests directory which are
-    not being run by pull-tester.py."""
+    Check that all python files in this directory are categorized
+    as a test script or meta script."""
     script_dir = src_dir + '/test/functional/'
     python_files = set([test_file for test_file in os.listdir(script_dir) if test_file.endswith(".py")])
     missed_tests = list(python_files - set(map(lambda x: x.split()[0], ALL_SCRIPTS + NON_SCRIPTS)))
