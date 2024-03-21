@@ -1,6 +1,5 @@
 
-B
-itc0f487f33be625004abab2e8a5a18aboin Core integration/staging tree
+Core integration/staging tree
 =====================================
 
 https://bitcoincore.org
