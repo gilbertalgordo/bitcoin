@@ -5,10 +5,6 @@
 #ifndef BITCOIN_NETADDRESS_H
 #define BITCOIN_NETADDRESS_H
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
-
 #include <compat/compat.h>
 #include <crypto/siphash.h>
 #include <prevector.h>
@@ -80,6 +76,10 @@ static const std::array<uint8_t, 6> TORV2_IN_IPV6_PREFIX{
 static const std::array<uint8_t, 6> INTERNAL_IN_IPV6_PREFIX{
     0xFD, 0x6B, 0x88, 0xC0, 0x87, 0x24 // 0xFD + sha256("bitcoin")[0:5].
 };
+
+/// All CJDNS addresses start with 0xFC. See
+/// https://github.com/cjdelisle/cjdns/blob/master/doc/Whitepaper.md#pulling-it-all-together
+static constexpr uint8_t CJDNS_PREFIX{0xFC};
 
 /// Size of IPv4 address (in bytes).
 static constexpr size_t ADDR_IPV4_SIZE = 4;
@@ -154,8 +154,8 @@ public:
     bool SetSpecial(const std::string& addr);
 
     bool IsBindAny() const; // INADDR_ANY equivalent
-    bool IsIPv4() const;    // IPv4 mapped address (::FFFF:0:0/96, 0.0.0.0/0)
-    bool IsIPv6() const;    // IPv6 address (not mapped IPv4, not Tor)
+    [[nodiscard]] bool IsIPv4() const { return m_net == NET_IPV4; } // IPv4 mapped address (::FFFF:0:0/96, 0.0.0.0/0)
+    [[nodiscard]] bool IsIPv6() const { return m_net == NET_IPV6; } // IPv6 address (not mapped IPv4, not Tor)
     bool IsRFC1918() const; // IPv4 private networks (10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12)
     bool IsRFC2544() const; // IPv4 inter-network communications (198.18.0.0/15)
     bool IsRFC6598() const; // IPv4 ISP-level NAT (100.64.0.0/10)
@@ -171,13 +171,21 @@ public:
     bool IsRFC6052() const; // IPv6 well-known prefix for IPv4-embedded address (64:FF9B::/96)
     bool IsRFC6145() const; // IPv6 IPv4-translated address (::FFFF:0:0:0/96) (actually defined in RFC2765)
     bool IsHeNet() const;   // IPv6 Hurricane Electric - https://he.net (2001:0470::/36)
-    bool IsTor() const;
-    bool IsI2P() const;
-    bool IsCJDNS() const;
+    [[nodiscard]] bool IsTor() const { return m_net == NET_ONION; }
+    [[nodiscard]] bool IsI2P() const { return m_net == NET_I2P; }
+    [[nodiscard]] bool IsCJDNS() const { return m_net == NET_CJDNS; }
+    [[nodiscard]] bool HasCJDNSPrefix() const { return m_addr[0] == CJDNS_PREFIX; }
     bool IsLocal() const;
     bool IsRoutable() const;
     bool IsInternal() const;
     bool IsValid() const;
+
+    /**
+     * Whether this object is a privacy network.
+     * TODO: consider adding IsCJDNS() here when more peers adopt CJDNS, see:
+     * https://github.com/bitcoin/bitcoin/pull/27411#issuecomment-1497176155
+     */
+    [[nodiscard]] bool IsPrivacyNet() const { return IsTor() || IsI2P(); }
 
     /**
      * Check if the current object can be serialized in pre-ADDRv2/BIP155 format.
@@ -249,6 +257,18 @@ public:
         }
     }
 
+    /**
+     * BIP155 network ids recognized by this software.
+     */
+    enum BIP155Network : uint8_t {
+        IPV4 = 1,
+        IPV6 = 2,
+        TORV2 = 3,
+        TORV3 = 4,
+        I2P = 5,
+        CJDNS = 6,
+    };
+
     friend class CSubNet;
 
 private:
@@ -269,18 +289,6 @@ private:
      * @see CNetAddr::IsI2P()
      */
     bool SetI2P(const std::string& addr);
-
-    /**
-     * BIP155 network ids recognized by this software.
-     */
-    enum BIP155Network : uint8_t {
-        IPV4 = 1,
-        IPV6 = 2,
-        TORV2 = 3,
-        TORV3 = 4,
-        I2P = 5,
-        CJDNS = 6,
-    };
 
     /**
      * Size of CNetAddr when serialized as ADDRv1 (pre-BIP155) (in bytes).
@@ -532,6 +540,11 @@ public:
     uint16_t GetPort() const;
     bool GetSockAddr(struct sockaddr* paddr, socklen_t* addrlen) const;
     bool SetSockAddr(const struct sockaddr* paddr);
+    /**
+     * Get the address family
+     * @returns AF_UNSPEC if unspecified
+     */
+    [[nodiscard]] sa_family_t GetSAFamily() const;
     friend bool operator==(const CService& a, const CService& b);
     friend bool operator!=(const CService& a, const CService& b) { return !(a == b); }
     friend bool operator<(const CService& a, const CService& b);

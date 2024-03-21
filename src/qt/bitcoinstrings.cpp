@@ -84,6 +84,9 @@ QT_TRANSLATE_NOOP("bitcoin-core", ""
 "Error: Unable to produce descriptors for this legacy wallet. Make sure to "
 "provide the wallet's passphrase if it is encrypted."),
 QT_TRANSLATE_NOOP("bitcoin-core", ""
+"Failed to calculate bump fees, because unconfirmed UTXOs depend on enormous "
+"cluster of unconfirmed transactions."),
+QT_TRANSLATE_NOOP("bitcoin-core", ""
 "Failed to rename invalid peers.dat file. Please move or delete it and try "
 "again."),
 QT_TRANSLATE_NOOP("bitcoin-core", ""
@@ -148,17 +151,10 @@ QT_TRANSLATE_NOOP("bitcoin-core", ""
 "SQLiteDatabase: Unknown sqlite wallet schema version %d. Only version %d is "
 "supported"),
 QT_TRANSLATE_NOOP("bitcoin-core", ""
-"The -txindex upgrade started by a previous version cannot be completed. "
-"Restart with the previous version or run a full -reindex."),
-QT_TRANSLATE_NOOP("bitcoin-core", ""
 "The block database contains a block which appears to be from the future. "
 "This may be due to your computer's date and time being set incorrectly. Only "
 "rebuild the block database if you are sure that your computer's date and "
 "time are correct"),
-QT_TRANSLATE_NOOP("bitcoin-core", ""
-"The block index db contains a legacy 'txindex'. To clear the occupied disk "
-"space, run a full -reindex, otherwise ignore this error. This error message "
-"will not be displayed again."),
 QT_TRANSLATE_NOOP("bitcoin-core", ""
 "The inputs size exceeds the maximum weight. Please try sending a smaller "
 "amount or manually consolidating your wallet's UTXOs"),
@@ -262,6 +258,7 @@ QT_TRANSLATE_NOOP("bitcoin-core", "Disk space is too low!"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Do you want to rebuild the block database now?"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Done loading"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Dump file %s does not exist."),
+QT_TRANSLATE_NOOP("bitcoin-core", "Error committing db txn for wallet transactions removal"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error creating %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error initializing block database"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error initializing wallet database environment %s!"),
@@ -274,9 +271,10 @@ QT_TRANSLATE_NOOP("bitcoin-core", "Error opening block database"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error reading configuration file: %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error reading from database, shutting down."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error reading next record from wallet database"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Error starting db txn for wallet transactions removal"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Cannot extract destination from the generated scriptpubkey"),
-QT_TRANSLATE_NOOP("bitcoin-core", "Error: Could not add watchonly tx to watchonly wallet"),
-QT_TRANSLATE_NOOP("bitcoin-core", "Error: Could not delete watchonly transactions"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Error: Could not add watchonly tx %s to watchonly wallet"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Error: Could not delete watchonly transactions. "),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Couldn't create cursor into database"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Disk space is low for %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Dumpfile checksum does not match. Computed %s, expected %s"),
@@ -286,19 +284,24 @@ QT_TRANSLATE_NOOP("bitcoin-core", "Error: Got value that was not hex: %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Keypool ran out, please call keypoolrefill first"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Missing checksum"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: No %s addresses available."),
-QT_TRANSLATE_NOOP("bitcoin-core", "Error: Not all watchonly txs could be deleted"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: This wallet already uses SQLite"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: This wallet is already a descriptor wallet"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Unable to begin reading all records in the database"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Unable to make a backup of your wallet"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Unable to parse version %u as a uint32_t"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Unable to read all records in the database"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Error: Unable to read wallet's best block locator record"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Unable to remove watchonly address book data"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Error: Unable to write record to new wallet"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Error: Unable to write solvable wallet best block locator record"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Error: Unable to write watchonly wallet best block locator record"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Error: address book copy failed for wallet %s"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Error: database transaction cannot be executed for wallet %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Failed to listen on any port. Use -listen=0 if you want this."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Failed to rescan the wallet during initialization"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Failed to start indexes, shutting down.."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Failed to verify database"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Failure removing transaction: %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Fee rate (%s) is lower than the minimum fee rate setting (%s)"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Ignoring duplicate -wallet %s."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Importing…"),
@@ -356,10 +359,10 @@ QT_TRANSLATE_NOOP("bitcoin-core", "The wallet will avoid paying less than the mi
 QT_TRANSLATE_NOOP("bitcoin-core", "This is experimental software."),
 QT_TRANSLATE_NOOP("bitcoin-core", "This is the minimum transaction fee you pay on every transaction."),
 QT_TRANSLATE_NOOP("bitcoin-core", "This is the transaction fee you will pay if you send a transaction."),
+QT_TRANSLATE_NOOP("bitcoin-core", "Transaction %s does not belong to this wallet"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction amount too small"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction amounts must not be negative"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction change output index out of range"),
-QT_TRANSLATE_NOOP("bitcoin-core", "Transaction has too long of a mempool chain"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction must have at least one recipient"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction needs a change address, but we can't generate it."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction too large"),
@@ -384,6 +387,7 @@ QT_TRANSLATE_NOOP("bitcoin-core", "Unsupported logging category %s=%s."),
 QT_TRANSLATE_NOOP("bitcoin-core", "User Agent comment (%s) contains unsafe characters."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Verifying blocks…"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Verifying wallet(s)…"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Wallet file creation failed: %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Wallet needed to be rewritten: restart %s to complete"),
 QT_TRANSLATE_NOOP("bitcoin-core", "acceptstalefeeestimates is not supported on %s chain."),
 };

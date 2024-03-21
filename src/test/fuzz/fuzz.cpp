@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2009-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -29,11 +29,13 @@
 #include <utility>
 #include <vector>
 
-#ifdef __AFL_FUZZ_INIT
+#if defined(PROVIDE_FUZZ_MAIN_FUNCTION) && defined(__AFL_FUZZ_INIT)
 __AFL_FUZZ_INIT();
 #endif
 
 const std::function<void(const std::string&)> G_TEST_LOG_FUN{};
+
+const std::function<std::string()> G_TEST_GET_FULL_NAME{};
 
 /**
  * A copy of the command line arguments that start with `--`.
@@ -71,7 +73,7 @@ auto& FuzzTargets()
 
 void FuzzFrameworkRegisterTarget(std::string_view name, TypeTestOneInput target, FuzzTargetOptions opts)
 {
-    const auto it_ins{FuzzTargets().try_emplace(name, FuzzTarget /* temporary can be dropped in C++20 */ {std::move(target), std::move(opts)})};
+    const auto it_ins{FuzzTargets().try_emplace(name, FuzzTarget /* temporary can be dropped after clang-16 */ {std::move(target), std::move(opts)})};
     Assert(it_ins.second);
 }
 
@@ -81,7 +83,7 @@ static const TypeTestOneInput* g_test_one_input{nullptr};
 void initialize()
 {
     // Terminate immediately if a fuzzing harness ever tries to create a TCP socket.
-    CreateSock = [](const CService&) -> std::unique_ptr<Sock> { std::terminate(); };
+    CreateSock = [](const sa_family_t&) -> std::unique_ptr<Sock> { std::terminate(); };
 
     // Terminate immediately if a fuzzing harness ever tries to perform a DNS lookup.
     g_dns_lookup = [](const std::string& name, bool allow_lookup) {

@@ -291,6 +291,9 @@ enum ServiceFlags : uint64_t {
     // See BIP159 for details on how this is implemented.
     NODE_NETWORK_LIMITED = (1 << 10),
 
+    // NODE_P2P_V2 means the node supports BIP324 transport
+    NODE_P2P_V2 = (1 << 11),
+
     // Bits 24-31 are reserved for temporary experiments. Just pick a bit that
     // isn't getting used, or one not being used much, and notify the
     // bitcoin-development mailing list. Remember that service bits are just
@@ -308,43 +311,12 @@ enum ServiceFlags : uint64_t {
 std::vector<std::string> serviceFlagsToStr(uint64_t flags);
 
 /**
- * Gets the set of service flags which are "desirable" for a given peer.
- *
- * These are the flags which are required for a peer to support for them
- * to be "interesting" to us, ie for us to wish to use one of our few
- * outbound connection slots for or for us to wish to prioritize keeping
- * their connection around.
- *
- * Relevant service flags may be peer- and state-specific in that the
- * version of the peer may determine which flags are required (eg in the
- * case of NODE_NETWORK_LIMITED where we seek out NODE_NETWORK peers
- * unless they set NODE_NETWORK_LIMITED and we are out of IBD, in which
- * case NODE_NETWORK_LIMITED suffices).
- *
- * Thus, generally, avoid calling with peerServices == NODE_NONE, unless
- * state-specific flags must absolutely be avoided. When called with
- * peerServices == NODE_NONE, the returned desirable service flags are
- * guaranteed to not change dependent on state - ie they are suitable for
- * use when describing peers which we know to be desirable, but for which
- * we do not have a confirmed set of service flags.
- *
- * If the NODE_NONE return value is changed, contrib/seeds/makeseeds.py
- * should be updated appropriately to filter for the same nodes.
+ * State independent service flags.
+ * If the return value is changed, contrib/seeds/makeseeds.py
+ * should be updated appropriately to filter for nodes with
+ * desired service flags (compatible with our new flags).
  */
-ServiceFlags GetDesirableServiceFlags(ServiceFlags services);
-
-/** Set the current IBD status in order to figure out the desirable service flags */
-void SetServiceFlagsIBDCache(bool status);
-
-/**
- * A shortcut for (services & GetDesirableServiceFlags(services))
- * == GetDesirableServiceFlags(services), ie determines whether the given
- * set of service flags are sufficient for a peer to be "relevant".
- */
-static inline bool HasAllDesirableServiceFlags(ServiceFlags services)
-{
-    return !(GetDesirableServiceFlags(services) & (~services));
-}
+constexpr ServiceFlags SeedsServiceFlags() { return ServiceFlags(NODE_NETWORK | NODE_WITNESS); }
 
 /**
  * Checks if a peer with the given service flags may be capable of having a
@@ -442,7 +414,7 @@ public:
         }
         // Invoke V1/V2 serializer for CService parent object.
         const auto ser_params{use_v2 ? CNetAddr::V2 : CNetAddr::V1};
-        READWRITE(WithParams(ser_params, AsBase<CService>(obj)));
+        READWRITE(ser_params(AsBase<CService>(obj)));
     }
 
     //! Always included in serialization. The behavior is unspecified if the value is not representable as uint32_t.

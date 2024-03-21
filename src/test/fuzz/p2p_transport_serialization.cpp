@@ -36,8 +36,8 @@ void initialize_p2p_transport_serialization()
 FUZZ_TARGET(p2p_transport_serialization, .init = initialize_p2p_transport_serialization)
 {
     // Construct transports for both sides, with dummy NodeIds.
-    V1Transport recv_transport{NodeId{0}, SER_NETWORK, INIT_PROTO_VERSION};
-    V1Transport send_transport{NodeId{1}, SER_NETWORK, INIT_PROTO_VERSION};
+    V1Transport recv_transport{NodeId{0}};
+    V1Transport send_transport{NodeId{1}};
 
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
 
@@ -88,7 +88,7 @@ FUZZ_TARGET(p2p_transport_serialization, .init = initialize_p2p_transport_serial
             assert(msg.m_time == m_time);
 
             std::vector<unsigned char> header;
-            auto msg2 = CNetMsgMaker{msg.m_recv.GetVersion()}.Make(msg.m_type, Span{msg.m_recv});
+            auto msg2 = NetMsg::Make(msg.m_type, Span{msg.m_recv});
             bool queued = send_transport.SetMessageToSend(msg2);
             assert(queued);
             std::optional<bool> known_more;
@@ -328,11 +328,14 @@ void SimulationTest(Transport& initiator, Transport& responder, R& rng, FuzzedDa
     // Make sure all expected messages were received.
     assert(expected[0].empty());
     assert(expected[1].empty());
+
+    // Compare session IDs.
+    assert(transports[0]->GetInfo().session_id == transports[1]->GetInfo().session_id);
 }
 
 std::unique_ptr<Transport> MakeV1Transport(NodeId nodeid) noexcept
 {
-    return std::make_unique<V1Transport>(nodeid, SER_NETWORK, INIT_PROTO_VERSION);
+    return std::make_unique<V1Transport>(nodeid);
 }
 
 template<typename RNG>
@@ -351,6 +354,7 @@ std::unique_ptr<Transport> MakeV2Transport(NodeId nodeid, bool initiator, RNG& r
     } else {
         // If it's longer, generate it from the RNG. This avoids having large amounts of
         // (hopefully) irrelevant data needing to be stored in the fuzzer data.
+        garb.resize(garb_len);
         for (auto& v : garb) v = uint8_t(rng());
     }
     // Retrieve entropy
@@ -366,7 +370,7 @@ std::unique_ptr<Transport> MakeV2Transport(NodeId nodeid, bool initiator, RNG& r
              .Write(garb.data(), garb.size())
              .Finalize(UCharCast(ent.data()));
 
-    return std::make_unique<V2Transport>(nodeid, initiator, SER_NETWORK, INIT_PROTO_VERSION, key, ent, std::move(garb));
+    return std::make_unique<V2Transport>(nodeid, initiator, key, ent, std::move(garb));
 }
 
 } // namespace

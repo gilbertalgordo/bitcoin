@@ -2,6 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#if defined(HAVE_CONFIG_H)
+#include <config/bitcoin-config.h>
+#endif
+
 #include <core_io.h>
 #include <key_io.h>
 #include <rpc/util.h>
@@ -427,6 +431,7 @@ public:
     explicit DescribeWalletAddressVisitor(const SigningProvider* _provider) : provider(_provider) {}
 
     UniValue operator()(const CNoDestination& dest) const { return UniValue(UniValue::VOBJ); }
+    UniValue operator()(const PubKeyDestination& dest) const { return UniValue(UniValue::VOBJ); }
 
     UniValue operator()(const PKHash& pkhash) const
     {
