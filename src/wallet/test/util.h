@@ -5,9 +5,7 @@
 #ifndef BITCOIN_WALLET_TEST_UTIL_H
 #define BITCOIN_WALLET_TEST_UTIL_H
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <addresstype.h>
 #include <wallet/db.h>
@@ -63,7 +61,7 @@ public:
 
     explicit MockableCursor(const MockableData& records, bool pass) : m_cursor(records.begin()), m_cursor_end(records.end()), m_pass(pass) {}
     MockableCursor(const MockableData& records, bool pass, Span<const std::byte> prefix);
-    ~MockableCursor() {}
+    ~MockableCursor() = default;
 
     Status Next(DataStream& key, DataStream& value) override;
 };
@@ -82,7 +80,7 @@ private:
 
 public:
     explicit MockableBatch(MockableData& records, bool pass) : m_records(records), m_pass(pass) {}
-    ~MockableBatch() {}
+    ~MockableBatch() = default;
 
     void Flush() override {}
     void Close() override {}
@@ -97,6 +95,7 @@ public:
     bool TxnBegin() override { return m_pass; }
     bool TxnCommit() override { return m_pass; }
     bool TxnAbort() override { return m_pass; }
+    bool HasActiveTxn() override { return false; }
 };
 
 /** A WalletDatabase whose contents and return values can be modified as needed for testing
@@ -108,7 +107,7 @@ public:
     bool m_pass{true};
 
     MockableDatabase(MockableData records = {}) : WalletDatabase(), m_records(records) {}
-    ~MockableDatabase() {};
+    ~MockableDatabase() = default;
 
     void Open() override {}
     void AddRef() override {}

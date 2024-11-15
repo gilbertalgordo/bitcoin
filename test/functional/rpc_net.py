@@ -45,14 +45,18 @@ def seed_addrman(node):
     """ Populate the addrman with addresses from different networks.
     Here 2 ipv4, 2 ipv6, 1 cjdns, 2 onion and 1 i2p addresses are added.
     """
-    node.addpeeraddress(address="1.2.3.4", tried=True, port=8333)
-    node.addpeeraddress(address="2.0.0.0", port=8333)
-    node.addpeeraddress(address="1233:3432:2434:2343:3234:2345:6546:4534", tried=True, port=8333)
-    node.addpeeraddress(address="2803:0:1234:abcd::1", port=45324)
-    node.addpeeraddress(address="fc00:1:2:3:4:5:6:7", port=8333)
-    node.addpeeraddress(address="pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion", tried=True, port=8333)
-    node.addpeeraddress(address="nrfj6inpyf73gpkyool35hcmne5zwfmse3jl3aw23vk7chdemalyaqad.onion", port=45324, tried=True)
-    node.addpeeraddress(address="c4gfnttsuwqomiygupdqqqyy5y5emnk5c73hrfvatri67prd7vyq.b32.i2p", port=8333)
+    # These addresses currently don't collide with a deterministic addrman.
+    # If the addrman positioning/bucketing is changed, these might collide
+    # and adding them fails.
+    success = { "success": True }
+    assert_equal(node.addpeeraddress(address="1.2.3.4", tried=True, port=8333), success)
+    assert_equal(node.addpeeraddress(address="2.0.0.0", port=8333), success)
+    assert_equal(node.addpeeraddress(address="1233:3432:2434:2343:3234:2345:6546:4534", tried=True, port=8333), success)
+    assert_equal(node.addpeeraddress(address="2803:0:1234:abcd::1", port=45324), success)
+    assert_equal(node.addpeeraddress(address="fc00:1:2:3:4:5:6:7", port=8333), success)
+    assert_equal(node.addpeeraddress(address="pg6mmjiyjmcrsslvykfwnntlaru7p5svn6y2ymmju6nubxndf4pscryd.onion", tried=True, port=8333), success)
+    assert_equal(node.addpeeraddress(address="nrfj6inpyf73gpkyool35hcmne5zwfmse3jl3aw23vk7chdemalyaqad.onion", port=45324, tried=True), success)
+    assert_equal(node.addpeeraddress(address="c4gfnttsuwqomiygupdqqqyy5y5emnk5c73hrfvatri67prd7vyq.b32.i2p", port=8333), success)
 
 
 class NetTest(BitcoinTestFramework):
@@ -233,28 +237,35 @@ class NetTest(BitcoinTestFramework):
     def test_addnode_getaddednodeinfo(self):
         self.log.info("Test addnode and getaddednodeinfo")
         assert_equal(self.nodes[0].getaddednodeinfo(), [])
-        # add a node (node2) to node0
+        self.log.info("Add a node (node2) to node0")
         ip_port = "127.0.0.1:{}".format(p2p_port(2))
         self.nodes[0].addnode(node=ip_port, command='add')
-        # try to add an equivalent ip
-        # (note that OpenBSD doesn't support the IPv4 shorthand notation with omitted zero-bytes)
+        self.log.info("Try to add an equivalent ip and check it fails")
+        self.log.debug("(note that OpenBSD doesn't support the IPv4 shorthand notation with omitted zero-bytes)")
         if platform.system() != "OpenBSD":
             ip_port2 = "127.1:{}".format(p2p_port(2))
             assert_raises_rpc_error(-23, "Node already added", self.nodes[0].addnode, node=ip_port2, command='add')
-        # check that the node has indeed been added
+        self.log.info("Check that the node has indeed been added")
         added_nodes = self.nodes[0].getaddednodeinfo()
         assert_equal(len(added_nodes), 1)
         assert_equal(added_nodes[0]['addednode'], ip_port)
-        # check that node cannot be added again
+        self.log.info("Check that filtering by node works")
+        self.nodes[0].addnode(node="11.22.33.44", command='add')
+        first_added_node = self.nodes[0].getaddednodeinfo(node=ip_port)
+        assert_equal(added_nodes, first_added_node)
+        assert_equal(len(self.nodes[0].getaddednodeinfo()), 2)
+        self.log.info("Check that node cannot be added again")
         assert_raises_rpc_error(-23, "Node already added", self.nodes[0].addnode, node=ip_port, command='add')
-        # check that node can be removed
+        self.log.info("Check that node can be removed")
         self.nodes[0].addnode(node=ip_port, command='remove')
-        assert_equal(self.nodes[0].getaddednodeinfo(), [])
-        # check that an invalid command returns an error
+        added_nodes = self.nodes[0].getaddednodeinfo()
+        assert_equal(len(added_nodes), 1)
+        assert_equal(added_nodes[0]['addednode'], "11.22.33.44")
+        self.log.info("Check that an invalid command returns an error")
         assert_raises_rpc_error(-1, 'addnode "node" "command"', self.nodes[0].addnode, node=ip_port, command='abc')
-        # check that trying to remove the node again returns an error
+        self.log.info("Check that trying to remove the node again returns an error")
         assert_raises_rpc_error(-24, "Node could not be removed", self.nodes[0].addnode, node=ip_port, command='remove')
-        # check that a non-existent node returns an error
+        self.log.info("Check that a non-existent node returns an error")
         assert_raises_rpc_error(-24, "Node has not been added", self.nodes[0].getaddednodeinfo, '1.1.1.1')
 
     def test_service_flags(self):
@@ -324,10 +335,10 @@ class NetTest(BitcoinTestFramework):
         self.restart_node(1, ["-checkaddrman=1", "-test=addrman"], clear_addrman=True)
         node = self.nodes[1]
 
-        self.log.debug("Test that addpeerinfo is a hidden RPC")
+        self.log.debug("Test that addpeeraddress is a hidden RPC")
         # It is hidden from general help, but its detailed help may be called directly.
-        assert "addpeerinfo" not in node.help()
-        assert "addpeerinfo" in node.help("addpeerinfo")
+        assert "addpeeraddress" not in node.help()
+        assert "unknown command: addpeeraddress" not in node.help("addpeeraddress")
 
         self.log.debug("Test that adding an empty address fails")
         assert_equal(node.addpeeraddress(address="", port=8333), {"success": False})
@@ -340,26 +351,50 @@ class NetTest(BitcoinTestFramework):
         assert_raises_rpc_error(-1, "JSON integer out of range", self.nodes[0].addpeeraddress, address="1.2.3.4", port=-1)
         assert_raises_rpc_error(-1, "JSON integer out of range", self.nodes[0].addpeeraddress, address="1.2.3.4", port=65536)
 
+        self.log.debug("Test that adding a valid address to the new table succeeds")
+        assert_equal(node.addpeeraddress(address="1.0.0.0", tried=False, port=8333), {"success": True})
+        addrman = node.getrawaddrman()
+        assert_equal(len(addrman["tried"]), 0)
+        new_table = list(addrman["new"].values())
+        assert_equal(len(new_table), 1)
+        assert_equal(new_table[0]["address"], "1.0.0.0")
+        assert_equal(new_table[0]["port"], 8333)
+
+        self.log.debug("Test that adding an already-present new address to the new and tried tables fails")
+        for value in [True, False]:
+            assert_equal(node.addpeeraddress(address="1.0.0.0", tried=value, port=8333), {"success": False, "error": "failed-adding-to-new"})
+        assert_equal(len(node.getnodeaddresses(count=0)), 1)
+
         self.log.debug("Test that adding a valid address to the tried table succeeds")
-        self.addr_time = int(time.time())
-        node.setmocktime(self.addr_time)
         assert_equal(node.addpeeraddress(address="1.2.3.4", tried=True, port=8333), {"success": True})
-        with node.assert_debug_log(expected_msgs=["CheckAddrman: new 0, tried 1, total 1 started"]):
-            addrs = node.getnodeaddresses(count=0)  # getnodeaddresses re-runs the addrman checks
-            assert_equal(len(addrs), 1)
-            assert_equal(addrs[0]["address"], "1.2.3.4")
-            assert_equal(addrs[0]["port"], 8333)
+        addrman = node.getrawaddrman()
+        assert_equal(len(addrman["new"]), 1)
+        tried_table = list(addrman["tried"].values())
+        assert_equal(len(tried_table), 1)
+        assert_equal(tried_table[0]["address"], "1.2.3.4")
+        assert_equal(tried_table[0]["port"], 8333)
+        node.getnodeaddresses(count=0)  # getnodeaddresses re-runs the addrman checks
 
         self.log.debug("Test that adding an already-present tried address to the new and tried tables fails")
         for value in [True, False]:
-            assert_equal(node.addpeeraddress(address="1.2.3.4", tried=value, port=8333), {"success": False})
-        assert_equal(len(node.getnodeaddresses(count=0)), 1)
+            assert_equal(node.addpeeraddress(address="1.2.3.4", tried=value, port=8333), {"success": False, "error": "failed-adding-to-new"})
+        assert_equal(len(node.getnodeaddresses(count=0)), 2)
 
-        self.log.debug("Test that adding a second address, this time to the new table, succeeds")
+        self.log.debug("Test that adding an address, which collides with the address in tried table, fails")
+        colliding_address = "1.2.5.45"  # grinded address that produces a tried-table collision
+        assert_equal(node.addpeeraddress(address=colliding_address, tried=True, port=8333), {"success": False, "error": "failed-adding-to-tried"})
+        # When adding an address to the tried table, it's first added to the new table.
+        # As we fail to move it to the tried table, it remains in the new table.
+        addrman_info = node.getaddrmaninfo()
+        assert_equal(addrman_info["all_networks"]["tried"], 1)
+        assert_equal(addrman_info["all_networks"]["new"], 2)
+
+        self.log.debug("Test that adding an another address to the new table succeeds")
         assert_equal(node.addpeeraddress(address="2.0.0.0", port=8333), {"success": True})
-        with node.assert_debug_log(expected_msgs=["CheckAddrman: new 1, tried 1, total 2 started"]):
-            addrs = node.getnodeaddresses(count=0)  # getnodeaddresses re-runs the addrman checks
-            assert_equal(len(addrs), 2)
+        addrman_info = node.getaddrmaninfo()
+        assert_equal(addrman_info["all_networks"]["tried"], 1)
+        assert_equal(addrman_info["all_networks"]["new"], 3)
+        node.getnodeaddresses(count=0)  # getnodeaddresses re-runs the addrman checks
 
     def test_sendmsgtopeer(self):
         node = self.nodes[0]
@@ -428,7 +463,7 @@ class NetTest(BitcoinTestFramework):
         self.log.debug("Test that getrawaddrman is a hidden RPC")
         # It is hidden from general help, but its detailed help may be called directly.
         assert "getrawaddrman" not in node.help()
-        assert "getrawaddrman" in node.help("getrawaddrman")
+        assert "unknown command: getrawaddrman" not in node.help("getrawaddrman")
 
         def check_addr_information(result, expected):
             """Utility to compare a getrawaddrman result entry with an expected entry"""
@@ -539,4 +574,4 @@ class NetTest(BitcoinTestFramework):
 
 
 if __name__ == '__main__':
-    NetTest().main()
+    NetTest(__file__).main()

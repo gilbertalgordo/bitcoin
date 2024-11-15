@@ -93,7 +93,7 @@ bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_
 
 bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason)
 {
-    if (tx.nVersion > TX_MAX_STANDARD_VERSION || tx.nVersion < 1) {
+    if (tx.version > TX_MAX_STANDARD_VERSION || tx.version < 1) {
         reason = "version";
         return false;
     }
@@ -111,7 +111,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
     for (const CTxIn& txin : tx.vin)
     {
         // Biggest 'standard' txin involving only keys is a 15-of-15 P2SH
-        // multisig with compressed keys (remember the 520 byte limit on
+        // multisig with compressed keys (remember the MAX_SCRIPT_ELEMENT_SIZE byte limit on
         // redeemScript size). That works out to a (15*(33+1))+3=513 byte
         // redeemScript, 513+1+15*(73+1)+3=1627 bytes of scriptSig, which
         // we round off to 1650(MAX_STANDARD_SCRIPTSIG_SIZE) bytes for
@@ -129,6 +129,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
     }
 
     unsigned int nDataOut = 0;
+    unsigned int num_dust_outputs{0};
     TxoutType whichType;
     for (const CTxOut& txout : tx.vout) {
         if (!::IsStandard(txout.scriptPubKey, max_datacarrier_bytes, whichType)) {
@@ -142,9 +143,14 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
             reason = "bare-multisig";
             return false;
         } else if (IsDust(txout, dust_relay_fee)) {
-            reason = "dust";
-            return false;
+            num_dust_outputs++;
         }
+    }
+
+    // Only MAX_DUST_OUTPUTS_PER_TX dust is permitted(on otherwise valid ephemeral dust)
+    if (num_dust_outputs > MAX_DUST_OUTPUTS_PER_TX) {
+        reason = "dust";
+        return false;
     }
 
     // only one OP_RETURN txout is permitted
@@ -224,6 +230,11 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
 
         // get the scriptPubKey corresponding to this input:
         CScript prevScript = prev.scriptPubKey;
+
+        // witness stuffing detected
+        if (prevScript.IsPayToAnchor()) {
+            return false;
+        }
 
         bool p2sh = false;
         if (prevScript.IsPayToScriptHash()) {

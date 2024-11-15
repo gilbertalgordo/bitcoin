@@ -2,9 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <arith_uint256.h>
 #include <chain.h>
@@ -54,13 +52,16 @@ static int AppInitUtil(ArgsManager& args, int argc, char* argv[])
 
     if (HelpRequested(args) || args.IsArgSet("-version")) {
         // First part of help message is specific to this utility
-        std::string strUsage = PACKAGE_NAME " bitcoin-util utility version " + FormatFullVersion() + "\n";
+        std::string strUsage = CLIENT_NAME " bitcoin-util utility version " + FormatFullVersion() + "\n";
 
         if (args.IsArgSet("-version")) {
             strUsage += FormatParagraph(LicenseInfo());
         } else {
             strUsage += "\n"
-                "Usage:  bitcoin-util [options] [commands]  Do stuff\n";
+                "The bitcoin-util tool provides bitcoin related functionality that does not rely on the ability to access a running node. Available [commands] are listed below.\n"
+                "\n"
+                "Usage:  bitcoin-util [options] [command]\n"
+                "or:     bitcoin-util [options] grind <hex-block-header>\n";
             strUsage += "\n" + args.GetHelpMessage();
         }
 
